@@ -2,7 +2,7 @@
 
 ## Breve Descrição do Projeto
 
-Este projeto é um sistema de gerenciamento de dados, focado na organização e controle de ideias para um Game Design Document, projetos relacionados a desenvolvimentos de jogos, personagems, histórias ou outros *designs*. Ele atua como uma interface para o inventárioz, onde o usuário pode criar, buscar, verificar e editar o estado de cada ideia.
+Este projeto é um sistema de gerenciamento de dados, focado na organização e controle de ideias para um Game Design Document, projetos relacionados a desenvolvimentos de jogos, personagems, histórias ou outros *designs*. Ele atua como uma interface para o inventário, onde o usuário pode criar, buscar, verificar e editar o estado de cada ideia.
 
 ---
 
