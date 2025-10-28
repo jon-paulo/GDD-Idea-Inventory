@@ -1,3 +1,5 @@
+/* Código feito por Vinícius */ 
+
 #include <stdio.h>
 #include <string.h>
 
