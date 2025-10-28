@@ -1,3 +1,5 @@
+/*Código feito pelo João Paulo mesmo*/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> //nao sei porque, mas botei aqui.
@@ -585,3 +587,4 @@ int main () {
 	fclose(f);
 	return 0;
 }
+
