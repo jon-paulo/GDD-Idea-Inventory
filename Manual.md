@@ -1,5 +1,7 @@
 # Manual GDD Idea Inventory
 
+<img width="500" height="162" alt="Image" src="https://github.com/user-attachments/assets/2028bdfa-27e4-486b-9406-16b6cf29b8fb" />
+
 ## Execução do projeto
 Com os arquivos `GDDI.c` e `gdd_types.h` baixados (na mesma pasta!!!). Siga os seguintes passos:
 
