@@ -168,6 +168,18 @@ int carregar_arquivos_e_indice(){
 }
 
 int salvar_indice(){
+		if (f_index == NULL) return 0;
+	
+	fseek (f_index, 0, SEEK_SET);
+	fwrite(&g_proximo_id, sizeof(int), 1, f_index);
+	fwrite(&g_total_ideias, sizeof(int), 1, f_index);
+
+	if (g_total_ideias > 0){
+		fwrite(g_indice, sizeof(IndiceEntry), g_total_ideias, f_index);
+	}
+	
+	fflush(f_index); // soh pra garantir
+	return 1;
 }
 
 int buscar_no_indice(int id, IndiceEntry** resultado){
@@ -266,6 +278,39 @@ void descartar_ideia(){
 }
 
 void jogar_no_lixo(){
+	printf("Digite o ID da ideia para JOGAR NO LIXO (PERMANENTE): ");
+	int id;
+	scanf("%d", &id);
+	scanf_flush();
+	
+	IndiceEntry* entrada = NULL;
+	buscar_no_indice(id, &entrada);
+	
+	if (entrada == NULL || entrada->status == E_lixo){
+		printf("Ideia ID %d nao encontrada ou ja esta no lixo.\n", id);
+		return;
+	}
+	
+	printf("Tem certeza? Isso apagara todos os dados da ideia %d.\n 1. Sim.\n 2. Nao.\n", id);
+	int escolha;
+	scanf("%d", &escolha);
+	scanf_flush();
+	if (escolha != 1) {
+		printf("Operacao cancelada.\n");
+		return;
+	}
+	
+	// se chegou ate aqui, o cara realmente odeia essa ideia.
+	entrada->status = E_lixo;
+	
+	struct Ideia lixo_struct;
+	memset(&lixo_struct, 0, sizeof(struct Ideia)); // pra criar o bloxo cheio de 0, pra apagar a ideia.
+	lixo_struct.id = id;
+	lixo_struct.est = E_lixo;
+	// salvar no arquivo e indice
+	escrever_ideia(entrada->posicao, &lixo_struct);
+	salvar_indice();
+	printf("Ideia Id %d foi jogada no lixo e teve seus dados apagados.\n", id);	
 }
 
 void compactar(){
@@ -421,6 +466,299 @@ void exibir_ideia (struct Ideia* ideia) {
 }
 
 void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
+	
+		if (modo == 2){ // pro caso de soh querer recuperar uma ideia descartada.
+		char p;
+		enum Estado e = -1;
+		while (e == -1)
+		{
+			printf("Estado da ideia:\n(C)oncluído, (E)m Progresso, (A) Fazer, ou (D)escartado?\n");
+			scanf("%c", &p);
+			scanf_flush(); //limpando a queue para não duplicar o while
+			
+			switch (p)
+			{
+				case ('C'): 	e = E_concluido; 	break;
+				case ('E'): 	e = E_em_progresso;	break;
+				case ('A'): 	e = E_a_fazer;		break;
+				case ('D'):		e = E_descartado;	break;
+				default: 		e = -1;
+			}
+		}
+		ideia->est = e;
+		entrada_indice->status = ideia->est;
+		escrever_ideia(entrada_indice->posicao, ideia);
+		salvar_indice();
+		return;
+	}
+	int escolha = 0;
+	while (escolha != 9){
+		printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
+		centralizar(100, "Editando Ideia");
+		printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+		printf("│%-100s│\n", "1. Editar Nome");
+		printf("│%-100s│\n", "2. Editar Estado");
+		printf("│%-100s│\n", "3. Editar prioridade");
+		printf("│%-100s│\n", "4. Editar resumo");
+		printf("│%-100s│\n", "5. Mudar Categoria(apaga as subcategorias atuais)");
+	
+		switch (ideia->Cat) {
+		case (C_Personagem):
+			printf("│%-100s│\n", "6. Editar idade");
+			printf("│%-100s│\n", "7. Editar Categorias:", C);
+			break;
+		case (C_Item):
+			printf("│%-100s│\n", "6. Editar tipo do item:");
+			break;
+	
+		case (C_Cenario):
+			printf("│%-100s│\n", "6. Editar a cor predominante do cenário:");
+			break;
+			
+		case (C_Customizado):
+			printf("│%-100s│\n", "6. Editar nome da Categoria customizada");
+			printf("│%-100s│\n", "7. Editar Atributos");
+			break;
+			
+		default: 
+			printf("erro no switch Cat em editar_ideia()"); //duvido
+		}
+		printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+		printf("│%-100s│\n", "9. Sair");
+		printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+		printf("Escolha: ");
+		
+		if (scanf("%d", &escolha) != 1){
+			escolha = -1; //isso eh pra previnir um loop infinito caso scanf leia uma letra ou sla.
+		}
+		scanf_flush();
+		limpar_tela();
+		
+		switch(escolha)
+		{
+			case 1: // NOME
+				printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
+				centralizar(100, "Editar Nome");
+				printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+				printf("│ %-98s │\n", "Nome atual: ");
+				printf("│ %-98s │\n", ideia->nome);
+				printf("│ %-98s │\n", "Novo Nome da ideia (até %d caracteres):", P);
+				printf("│ ► ");
+				ler_frase(ideia->nome, P);
+				printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+				break;
+			case 2:  // ESTADO
+			{
+				char p;
+				enum Estado e = -1;
+				while (e == -1)
+				{
+					printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
+					centralizar(100, "Editar Estado");
+					printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+					printf("│ %-98s │\n", "Novo estado da ideia:");
+					printf("│ %-99s │\n", " (C)oncluído");
+					printf("│ %-98s │\n", " (E)m Progresso");
+					printf("│ %-98s │\n", " (A) Fazer");
+					printf("│ %-98s │\n", " (D)escartado");
+					printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+					printf(" Escolha: ");
+					scanf("%c", &p);
+					scanf_flush(); //limpando a queue para não duplicar o while
+				
+					switch (p)
+					{
+						case ('C'): 	e = E_concluido; 	break;
+						case ('E'): 	e = E_em_progresso;	break;
+						case ('A'): 	e = E_a_fazer;		break;
+						case ('D'):		e = E_descartado;	break;
+						default: 		e = -1;
+					}
+				}
+				ideia->est = e;
+				if ((ideia->est == E_concluido) || (ideia->est == E_descartado)) 
+				{			
+					ideia->prioridade = 0;  
+				}
+				break;
+			}
+			case 3: // PRIORIDADE
+				printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
+				centralizar(100, "Editar Prioridade");
+				printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+				printf("│ %-98s │\n", "Prioridade atual: %d");
+				printf("│ %-98s │\n", "Qual a nova prioridade da ideia no projeto?");
+				printf("│ ► ");
+				scanf("%d", &ideia->prioridade);
+				scanf_flush(); 
+				printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+				
+				break;
+			case 4: // RESUMO
+				printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
+				centralizar(100, "Editar Resumo");
+				printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+				printf("│ %-98s │\n", "Novo resumo da ideia (até %d caracteres):", T);
+				printf("│ ► ");
+				ler_frase(ideia->resumo, T);
+				printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+				break;
+			case 5: // Mudar Categoria
+			{
+				char p;
+			enum Categoria c = -1;
+				while (c == -1)
+				{
+					printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
+					centralizar(100, "Mudar Categoria");
+					printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+					printf("│ %-98s │\n", "ATENCAO: Mudar a categoria apagará TODOS os dados das subcategorias atuais!");
+					printf("│ %-98s │\n", "(P)ersonagem, (I)tem, (C)enário, ou (O)utro?");
+					printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+					printf(" Escolha: ");
+					scanf("%c", &p);
+					scanf_flush();
+					
+					switch (p)
+					{
+						case ('P'): case ('p'): c = C_Personagem; 	break;
+						case ('I'): case ('i'): c = C_Item;			break;
+						case ('C'): case ('c'): c = C_Cenario;		break;
+						case ('O'):	case ('o'): c = C_Customizado;	break;
+						default: 	
+							c = -1;	
+							limpar_tela();
+					}
+				}
+				memset(&ideia->idade, 0, sizeof(UnionSize)); //apaga tudo
+				ideia->Cat = c;
+				limpar_tela();
+				printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
+				centralizar(100, "Configurar Nova Categoria");
+				printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+				
+				switch (ideia->Cat) {
+					case (C_Personagem):
+						printf("│ %-98s │\n", "Insira a idade do personagem:\n");
+						printf("│ ► ");
+						scanf("%d", &ideia->idade);
+						scanf_flush(); //limpando queue por preocaução
+						printf("│ %-98s │\n", "Defina o personagem em %d palavras distintas(ou frases de até 64 caracteres):\n", C);
+						for (int i = 0; i < C; i++)
+						{
+							printf("│ %d° caracteristica: ", i+1);
+							ler_frase(ideia->carac[i], P);
+						}
+						scanf_flush();	
+						break;
+					case (C_Item):
+						printf("│ %-98s │\n", "Insira o tipo do item:\n");
+						printf("│ ► ");
+						ler_frase(ideia->tipo, P);
+						scanf_flush();
+						break;
+					case (C_Cenario):
+						printf("│ %-98s │\n", "Insira em hexadecimal a cor predominante do cenário:\n");
+						printf("│ ► ");
+						scanf("%x", &ideia->cor_predom);
+						scanf_flush(); //limpando queue por preocaução
+						break;
+					case (C_Customizado):
+						printf("│ %-98s │\n", "Nome da categoria customizada: ");
+						printf("│ ► ");
+						ler_frase(ideia->nome_categoria_custom, P);
+						scanf_flush();
+						printf("│ %-98s │\n", "Quantos atributos (max %d)?", MAX_ATRIBUTOS);
+						printf("│ ► ");
+						scanf("%d", &ideia->num_atributos);
+						scanf_flush();
+						if(ideia->num_atributos > MAX_ATRIBUTOS) ideia->num_atributos = MAX_ATRIBUTOS;
+						if(ideia->num_atributos < 0) ideia->num_atributos = 0;
+				
+						for(int i = 0; i < ideia->num_atributos; i++){
+							printf("│ Atributo %d - Chave: ", i+1);
+							ler_frase(ideia->atributos[i].chave, P);
+							printf("│ Atributo %d - Valor: ", i+1);
+							ler_frase(ideia->atributos[i].valor, P);
+						}
+						break;
+					default: 
+					printf("erro no switch Cat em editar_ideia()");
+					}
+					printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+			}
+			
+			break;
+			case 6: // Editar sub-categoria 1
+				limpar_tela();
+				printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
+				switch (ideia->Cat) {
+					case (C_Personagem):
+						printf("│ %-98s │\n", "Insira a idade do personagem:");
+						printf("│ ► ");
+						scanf_flush(); //limpando queue por preocaução		
+						break;
+	
+					case (C_Item):
+						printf("│ %-98s │\n", "Insira o tipo do item:\n");
+						printf("│ ► ");
+						ler_frase(ideia->tipo, P);
+						break;
+					case (C_Cenario):
+						printf("│ %-98s │\n", "Insira em hexadecimal a cor predominante do cenário:\n");
+						printf("│ ► ");
+						scanf("%x", &ideia->cor_predom);
+						scanf_flush(); //limpando queue por preocaução
+						break;
+					case (C_Customizado):
+						printf("│ %-98s │\n", "Insira o nome da categoria customizada: \n");
+						printf("│ ► ");
+						ler_frase(ideia->nome_categoria_custom, P);
+						scanf_flush();
+						break;
+					default: 
+					printf("categoria invalida\n");
+				}
+				printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+			break;
+			case 7: // editar sub-categoria 2
+				limpar_tela();
+				printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
+				switch (ideia->Cat){
+					case (C_Personagem):
+						printf("│ %-98s │\n", "Defina o personagem em %d palavras distintas(ou frases de até 64 caracteres):\n", C);
+						for (int i = 0; i < C; i++)
+						{
+							printf("│ %d° caracteristica (atual): %s", i+1, ideia->carac[i]);
+							printf("│ %d° caracteristica nova: ");
+							ler_frase(ideia->carac[i], P);
+						}
+						scanf_flush(); //limpando queue por preocaução
+						break;
+					case (C_Customizado):
+						printf("Editando %d atributos:\n", ideia->num_atributos);
+						for(int i = 0; i < ideia->num_atributos; i++){
+							printf("│ Chave(Nome) %d (Atual: '%s')", i+1, ideia->atributos[i].chave);
+							printf("│ Chave %d nova: ", i+1, ideia->atributos[i].chave);
+							ler_frase(ideia->atributos[i].chave, P);
+							printf("│ Valor %d (Atual: '%s')", i+1, ideia->atributos[i].valor);
+							printf("│ Valor %d novo: ", i+1, ideia->atributos[i].valor);
+							ler_frase(ideia->atributos[i].valor, P);
+						}
+						break;
+					default:
+						printf("Opcao invalida. \a\n"); // as vezes eu tento botar o \a pra ver se funciona, eh estranho
+				}
+				printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+			break;
+			case 9: printf("Saindo do menu de edicao... \n"); break;
+			default: printf("Entrada Invalida. \a \n"); //desde que descobri \a acho mt divertido
+		}
+	}
+	printf("Salvando alteracoes no arquivo...\n");
+	entrada_indice->status = ideia->est;
+	escrever_ideia(entrada_indice->posicao, ideia);
+	salvar_indice();
 }
 
 void limpar_tela(){
