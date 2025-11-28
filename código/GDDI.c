@@ -165,10 +165,53 @@ void centralizar(int largura, const char* texto){
 }
 
 int carregar_arquivos_e_indice(){
+	printf("Abrindo Arquivo %s...\n", arquivo_dados);
+	f_data = fopen(arquivo_dados, "rb+");
+	if (f_data == NULL){
+		printf("Arquivo nao encontrado. Criando novo...\n");
+	 	f_data = fopen(arquivo_dados, "wb+");
+	}
+	if (f_data == NULL){
+		printf("Erro fatal: Nao foi possivel abrir nem criar %s \n", arquivo_dados);
+		return 0;
+	}
+	
+	printf("Abrindo Arquivo %s...\n", arquivo_indice);
+	f_index = fopen(arquivo_indice, "rb+");
+	if (f_index == NULL){
+		printf("Arquivo nao encontrado. Criando novo...\n");
+	 	f_index = fopen(arquivo_indice, "wb+");
+		if (f_index == NULL){
+			printf("Erro fatal: Nao foi possivel abrir nem criar %s \n", arquivo_dados);
+			return 0;
+		}
+		
+		// se ele chegou aqui, o arquivo esta vazio, escreve os cabecalhos padrao(vazios). 
+		fwrite(&g_proximo_id, sizeof(int), 1, f_index);
+		fwrite(&g_total_ideias, sizeof(int), 1, f_index);
+	} else {
+		// se ele chegou aqui, o arquivo existia, entao le os cabecalhos
+		fread(&g_proximo_id, sizeof(int), 1, f_index);
+		fread(&g_total_ideias, sizeof(int), 1, f_index);
+	}
+	// aloca memodia pro indice, as buscas ficam mais rapidas assim, tudo na RAM
+	if (g_total_ideias > 0) {
+		g_indice = (IndiceEntry*) malloc(sizeof(IndiceEntry) * g_total_ideias);
+		if (g_indice == NULL){
+			printf("falha no malloc pro Indice. \n");
+			return 0;
+		}
+		fread(g_indice, sizeof(IndiceEntry), g_total_ideias, f_index);
+	} else {
+		// aloca espaço minimo pra evitar realloc(NULL), nao eh extremamente necessario mas eu gosto, pra certos casos ae.
+		g_indice = (IndiceEntry*) malloc(sizeof(IndiceEntry));
+	}
+	printf("Sistema carregado. %d ideias no indice. Proximo ID: %d \n", g_total_ideias, g_proximo_id);
+	return 1;
 }
 
 int salvar_indice(){
-		if (f_index == NULL) return 0;
+	if (f_index == NULL) return 0;
 	
 	fseek (f_index, 0, SEEK_SET);
 	fwrite(&g_proximo_id, sizeof(int), 1, f_index);
@@ -225,9 +268,34 @@ int buscar_no_indice(int id, IndiceEntry** resultado){
 }
 
 int ler_ideia_arquivo(long posicao, struct Ideia* ideia){
+	if(fseek(f_data, posicao, SEEK_SET) != 0) return 0;
+	
+	if	(	
+		fread(&ideia->id, sizeof(ideia->id), 1, f_data) == 1 &&
+		fread(&ideia->est, sizeof(ideia->est), 1, f_data) == 1 &&
+		fread(&ideia->nome, sizeof(ideia->nome), 1, f_data) == 1 &&
+		fread(&ideia->resumo, sizeof(ideia->resumo), 1, f_data) == 1 &&
+		fread(&ideia->Cat, sizeof(ideia->Cat), 1, f_data) == 1 &&
+		fread(&ideia->idade, sizeof(UnionSize), 1, f_data) == 1 &&
+		fread(&ideia->prioridade, sizeof(ideia->prioridade), 1, f_data) == 1
+		) { // esse if com && eh soh pra parar a leitura se qualquer um deles falhar
+		return 1; // conseguiu ler
+	}
+	return 0; // falhou
 }
 
 int escrever_ideia(long posicao, const struct Ideia* ideia){
+	if (fseek(f_data, posicao, SEEK_SET) != 0) return 0;
+	
+	fwrite(&ideia->id, sizeof(ideia->id), 1, f_data);
+	fwrite(&ideia->est, sizeof(ideia->est), 1, f_data);
+	fwrite(&ideia->nome, sizeof(ideia->nome), 1, f_data);
+	fwrite(&ideia->resumo, sizeof(ideia->resumo), 1, f_data);
+	fwrite(&ideia->Cat, sizeof(ideia->Cat), 1, f_data);
+	fwrite(&ideia->idade, sizeof(UnionSize), 1, f_data); //copia qualquer Union, Idade eh o primeiro item na hora de criar a union, entao o endereço dele é o endereço de todos.
+	fwrite(&ideia->prioridade, sizeof(ideia->prioridade), 1, f_data);
+
+	return 1;	
 }
 
 void criar_ideia(){
@@ -272,9 +340,76 @@ void criar_ideia(){
 }
 
 void buscar_ideia(){
+	printf("Digite o ID da ideia que deseja buscar: ");
+	int id;
+	scanf("%d", &id);
+	scanf_flush();
+	
+	IndiceEntry* entrada = NULL;
+	buscar_no_indice(id, &entrada);
+	
+	if(entrada == NULL){
+		printf("Ideia ID %d nao encontrada no indice.\n", id);
+		return;
+	}
+	
+	if(entrada->status == E_lixo){
+		printf("Ideia Id %d foi jogada no lixo e sera removida na proxima compactacao.\n", id);
+		return;
+	}
+	
+	// se chegou aqui, achou e nao eh lixo, le os dados
+	struct Ideia ideia;
+	if (!ler_ideia_arquivo(entrada->posicao, &ideia)){
+		printf("ERRO: Nao foi possivel ler os dados da ideia %d.\n", id);
+		return;
+	}
+	exibir_ideia(&ideia);
+	
+	if (entrada->status == E_descartado){
+		printf("\nEsta ideia foi Descartada. Deseja recupera-la?\n 1. Sim\n 2. Nao\n");
+		int escolha;
+		scanf("%d", &escolha);
+		scanf_flush();
+		limpar_tela();
+		if (escolha == 1){
+			menu_edit(&ideia, entrada, 2); // Modo 2 = recuperar
+		}
+	} else {
+		printf("\nDeseja editar essa ideia?\n 1. Sim\n 2. Nao\n");
+		int escolha;
+		scanf("%d", &escolha);
+		scanf_flush();
+		limpar_tela();
+		if(escolha == 1){
+			menu_edit(&ideia, entrada, 0); // Modo 0 eh edicao normal.
+		}
+	}
 }
 
 void descartar_ideia(){
+	printf("Digite o ID da ideia que deseja descartar: ");
+	int id;
+	scanf("%d", &id);
+	scanf_flush();
+	
+	IndiceEntry* entrada = NULL;
+	buscar_no_indice(id, &entrada);
+	
+	if (entrada == NULL || entrada->status == E_descartado || entrada->status == E_lixo){
+		printf("Ideia ID %d nao encontrada ou ja inativa.\n", id);
+		return;
+	}
+	// se chegou ate aqui, id foi encontrado e nao esta descartado. Entao descarta.
+	struct Ideia ideia;
+	ler_ideia_arquivo(entrada->posicao, &ideia);
+	
+	ideia.est = E_descartado;
+	entrada->status = E_descartado;
+	// salvar no arquivo e indice
+	escrever_ideia(entrada->posicao, &ideia);
+	salvar_indice();
+	printf("Ideia Id %d marcada como descartada.\n", id);
 }
 
 void jogar_no_lixo(){
@@ -310,10 +445,60 @@ void jogar_no_lixo(){
 	// salvar no arquivo e indice
 	escrever_ideia(entrada->posicao, &lixo_struct);
 	salvar_indice();
-	printf("Ideia Id %d foi jogada no lixo e teve seus dados apagados.\n", id);	
+	printf("Ideia Id %d foi jogada no lixo e teve seus dados apagados.\n", id);
 }
 
 void compactar(){
+	printf("Iniciando compactacao...\n");
+	// arquivos "temporarios" pra copiar.
+	FILE* f_temp_data = fopen("temp_data.bin", "wb");
+	FILE* f_temp_index = fopen("temp_index.bin", "wb");
+	if (f_temp_data == NULL || f_temp_index == NULL){
+		printf("Erro ao criar os arquivos temporarios");
+		return;
+	}
+	
+	IndiceEntry* novo_indice = (IndiceEntry*) malloc(sizeof(IndiceEntry) * g_total_ideias);
+	int novo_total_ideias = 0;
+	
+	for(int i = 0; i < g_total_ideias; i++){
+		if(g_indice[i].status != E_lixo){ //se o registro nao for lixo, ele copia
+			struct Ideia ideia;
+			ler_ideia_arquivo(g_indice[i].posicao, &ideia);
+			long nova_posicao = ftell(f_temp_data);
+			fwrite(&ideia, tamanho_registro, 1, f_temp_data);
+			
+			novo_indice[novo_total_ideias].id = ideia.id;
+			novo_indice[novo_total_ideias].posicao = nova_posicao;
+			novo_indice[novo_total_ideias].status = ideia.est;
+			novo_total_ideias++;
+		}
+	}
+	printf("Compactacao: %d ideias mantidas.\n", novo_total_ideias);
+	
+	// salvando tudo isso no arquivo novo.
+	fseek(f_temp_index, 0, SEEK_SET);
+	fwrite(&g_proximo_id, sizeof(int), 1, f_temp_index);
+	fwrite(&novo_total_ideias, sizeof(int), 1, f_temp_index);
+	fwrite(novo_indice, sizeof(IndiceEntry), novo_total_ideias, f_temp_index);
+	
+	// matar e substituir os arquivos antigos
+	fclose(f_data);
+	fclose(f_index);
+	fclose(f_temp_data);
+	fclose(f_temp_index);
+	
+	remove(arquivo_dados);
+	remove(arquivo_indice);
+	rename("temp_data.bin", arquivo_dados);
+	rename("temp_index.bin", arquivo_indice);
+	
+	// limpar tudo salvo na RAM e recarregar.
+	free(g_indice);
+	g_indice = NULL;
+	g_total_ideias = 0;
+	carregar_arquivos_e_indice();
+	printf("compactacao concluida\n");
 }
 
 void ler_ideia (struct Ideia* ideia)
@@ -462,12 +647,75 @@ void ler_ideia (struct Ideia* ideia)
 }
 
 void exibir_ideia (struct Ideia* ideia) {
+	char string_temp[100]; // 65 soh pra garantir
+	int largura = 100;
 	
+	printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
+	sprintf(string_temp, "(ID: %d) %s", ideia->id, ideia->nome);
+	centralizar(largura, string_temp);
+	printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+	printf("│Estado: ");
+	switch (ideia->est)
+			{
+				case (E_lixo): 			printf("%-92s│\n", "Lixo");		 	break;
+				case (E_concluido): 	printf("%-92s│\n", "Concluido");	break;
+				case (E_em_progresso): 	printf("%-92s│\n", "Em Progresso"); break;
+				case (E_a_fazer):	 	printf("%-92s│\n", "A Fazer"); 		break;
+				case (E_descartado):	printf("%-92s│\n", "Descartado"); 	break; //talvez nem cheguemos a exibir esse
+				default: 				printf("%-92s│\n", "Erro no estado da ideia por algum motivo '-' ");
+			}
+	sprintf(string_temp, "Prioridade: %d", ideia->prioridade);
+	printf("│%-100s│\n", string_temp);
+	printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+	printf("│                                               Resumo                                               │\n");
+	exibir_texto(ideia->resumo, largura);
+	printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+	
+	switch (ideia->Cat) 
+	{
+		case (C_Personagem):
+			centralizar(largura, "Categoria: Personagem");
+			printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+			printf("│Idade: %d\n", ideia->idade);
+			printf("│Caracteristicas:\n");
+			for (int i = 0; i < C; i++) {
+				printf("- %s \n", ideia->carac[i]);
+			} 
+			printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+			break;
+	
+		case (C_Item):
+			centralizar(largura, "Categoria: Item");
+			printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+			printf("│Tipo do item: %-86s│\n", ideia->tipo);
+			printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+			break;
+	
+		case (C_Cenario):
+			centralizar(largura, "Categoria: Cenário");
+			printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+			printf("│Cor predominante do cenario (Hexadecimal): %6x\n", ideia->cor_predom);
+			printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+			break;
+			
+		case (C_Customizado):
+			sprintf(string_temp, "%s %s", "Categoria:", ideia->nome_categoria_custom);
+			centralizar(largura, string_temp);
+			printf("│%-100s│\n", "Atributos(subcategorias):");
+			for(int i = 0; i < ideia->num_atributos; i++){
+				printf("│ ╭ %-97s│\n", ideia->atributos[i].chave);
+				printf("│ ╰─► %-95s│\n", ideia->atributos[i].valor);
+			}
+			printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
+			break;
+		default:
+			printf("erro no switch Cat em exibir_ideia()"); // nao consigo imaginar isso dando erro mas enfim neh.
+	}
 }
 
 void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 	
-		if (modo == 2){ // pro caso de soh querer recuperar uma ideia descartada.
+	if (modo == 2){ // pro caso de soh querer recuperar uma ideia descartada.
 		char p;
 		enum Estado e = -1;
 		while (e == -1)
