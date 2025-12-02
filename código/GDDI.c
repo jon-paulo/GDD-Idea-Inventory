@@ -753,7 +753,7 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 		switch (ideia->Cat) {
 		case (C_Personagem):
 			printf("│%-100s│\n", "6. Editar idade");
-			printf("│%-100s│\n", "7. Editar Categorias:", C);
+			printf("│%-100s│\n", "7. Editar características:", C);
 			break;
 		case (C_Item):
 			printf("│%-100s│\n", "6. Editar tipo do item:");
