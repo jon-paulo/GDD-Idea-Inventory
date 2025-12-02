@@ -36,8 +36,8 @@ void buscar_ideia(); // e Editar tambem se quiser
 void descartar_ideia();
 void jogar_no_lixo();
 void compactar();
-void ler_ideia();
-void exibir_ideia (struct Ideia* ideia);
+void ler_ideia(struct Ideia* ideia);
+void exibir_ideia(struct Ideia* ideia);
 void listar_ideias();
 void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo);
 void limpar_tela();
