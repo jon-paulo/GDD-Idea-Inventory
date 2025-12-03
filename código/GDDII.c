@@ -22,6 +22,7 @@ void scanf_flush();
 void ler_frase(char* str, int len);
 void exibirTextoFormatado(const char* texto, int largura); // pode ser considerada funcao de UI, mas essa categoria de basicas tava mt vazia
 void centralizar(int largura, const char* texto); // msm coisa
+void format_print(const char *f1, const char *f2, int i); // soh pra uns casos especificos 
 
 // Funcoes de mexer no arquivo
 int carregar_arquivos_e_indice();
@@ -100,7 +101,7 @@ int main () {
 			default: printf("Entrada Invalida. \a \n"); //desde que descobri \a acho mt divertido
 		}
 	}
-	salvar_indice(); // salvar antes de fechar soh por segurança
+	salvar_indice();// salvar antes de fechar soh por segurança
 	fclose(f_data);
 	fclose(f_index);
 	free(g_indice);
@@ -162,6 +163,12 @@ void centralizar(int largura, const char* texto){
 	
 	printf("│%*s%*s│\n", metade1, texto, metade2, "");
 	
+}
+
+void format_print(const char *f1, const char *f2, int i){
+	char buffer[512];
+	sprintf(buffer, f2, i);
+	printf(f1, buffer);
 }
 
 int carregar_arquivos_e_indice(){
@@ -506,12 +513,12 @@ void ler_ideia (struct Ideia* ideia)
 	printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
 	centralizar(100, "Criar Nova Ideia");
 	//nome
-	printf("│ %-98s │\n", "Nome da ideia (até %d caracteres):", P);
+	format_print("│ %-98s │\n", "Nome da ideia (até %d caracteres):", P);
 	printf("│ ► ");
 	ler_frase(ideia->nome, P);
 
 	//resumo
-	printf("│ %-98s │\n", "Resumo da ideia (até %d caracteres):", T);
+	format_print("│ %-98s │\n", "Resumo da ideia (até %d caracteres):", T);
 	ler_frase(ideia->resumo, T);
 	printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
 	
@@ -521,7 +528,7 @@ void ler_ideia (struct Ideia* ideia)
 		enum Categoria c = -1;
 		while (c == -1)
 		{
-			printf("│ %-98s │\n", "(P)ersonagem, (I)tem, ou (C)enário, ou (O)utro?\n│");
+			printf("│ %-98s │\n", "(P)ersonagem, (I)tem, ou (C)enário, ou (O)utro?│");
 			printf("│ ► ");
 			scanf("%c", &p);
 			scanf_flush(); //limpando a queue do stdin para não duplicar o while
@@ -550,7 +557,7 @@ void ler_ideia (struct Ideia* ideia)
 			scanf_flush(); //limpando queue por preocaução		
 
 			//caracteristicas
-			printf("│ %-98s │\n", "Defina o personagem em %d palavras distintas(ou frases de até 64 caracteres):", C);
+			format_print("│ %-98s │\n", "Defina o personagem em %d palavras distintas(ou frases de até 64 caracteres):", C);
 			for (int i = 0; i < C; i++)
 			{
 				printf("│%d° caracteristica: ", i+1);
@@ -583,7 +590,7 @@ void ler_ideia (struct Ideia* ideia)
 			printf("│ %-98s │\n", "Digite o nome da categoria customizada: ");
 			printf("│ ► ");
 			ler_frase(ideia->nome_categoria_custom, P);
-			printf("│ %-98s │\n", "Quantos atributos deseja adicionar (max %d)?", MAX_ATRIBUTOS);
+			format_print("│ %-98s │\n", "Quantos atributos deseja adicionar (max %d)?", MAX_ATRIBUTOS);
 			printf("│ ► ");
 			scanf("%d", &ideia->num_atributos);
 			scanf_flush();
@@ -676,10 +683,10 @@ void exibir_ideia (struct Ideia* ideia) {
 		case (C_Personagem):
 			centralizar(largura, "Categoria: Personagem");
 			printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
-			printf("│Idade: %d\n", ideia->idade);
-			printf("│Caracteristicas:\n");
+			format_print("│%-100s│\n", "Idade: %d", ideia->idade);
+			printf("│%-100s│\n", "Caracteristicas:");
 			for (int i = 0; i < C; i++) {
-				printf("- %s \n", ideia->carac[i]);
+				printf("│ ─► %-96s│\n", ideia->carac[i]);
 			} 
 			printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
 			break;
@@ -753,7 +760,7 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 		switch (ideia->Cat) {
 		case (C_Personagem):
 			printf("│%-100s│\n", "6. Editar idade");
-			printf("│%-100s│\n", "7. Editar características:", C);
+			printf("│%-100s│\n", "7. Editar características:");
 			break;
 		case (C_Item):
 			printf("│%-100s│\n", "6. Editar tipo do item:");
@@ -790,7 +797,7 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 				printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
 				printf("│ %-98s │\n", "Nome atual: ");
 				printf("│ %-98s │\n", ideia->nome);
-				printf("│ %-98s │\n", "Novo Nome da ideia (até %d caracteres):", P);
+				format_print("│ %-98s │\n", "Novo Nome da ideia (até %d caracteres):", P);
 				printf("│ ► ");
 				ler_frase(ideia->nome, P);
 				printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
@@ -846,7 +853,7 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 				printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
 				centralizar(100, "Editar Resumo");
 				printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
-				printf("│ %-98s │\n", "Novo resumo da ideia (até %d caracteres):", T);
+				format_print("│ %-98s │\n", "Novo resumo da ideia (até %d caracteres):", T);
 				printf("│ ► ");
 				ler_frase(ideia->resumo, T);
 				printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
@@ -887,11 +894,11 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 				
 				switch (ideia->Cat) {
 					case (C_Personagem):
-						printf("│ %-98s │\n", "Insira a idade do personagem:\n");
+						printf("│ %-98s │\n", "Insira a idade do personagem:");
 						printf("│ ► ");
 						scanf("%d", &ideia->idade);
 						scanf_flush(); //limpando queue por preocaução
-						printf("│ %-98s │\n", "Defina o personagem em %d palavras distintas(ou frases de até 64 caracteres):\n", C);
+						format_print("│ %-98s │\n", "Defina o personagem em %d palavras distintas(ou frases de até 64 caracteres):", C);
 						for (int i = 0; i < C; i++)
 						{
 							printf("│ %d° caracteristica: ", i+1);
@@ -916,7 +923,7 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 						printf("│ ► ");
 						ler_frase(ideia->nome_categoria_custom, P);
 						scanf_flush();
-						printf("│ %-98s │\n", "Quantos atributos (max %d)?", MAX_ATRIBUTOS);
+						format_print("│ %-98s │\n", "Quantos atributos (max %d)?", MAX_ATRIBUTOS);
 						printf("│ ► ");
 						scanf("%d", &ideia->num_atributos);
 						scanf_flush();
@@ -974,11 +981,11 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 				printf("╭────────────────────────────────────────────────────────────────────────────────────────────────────╮\n");
 				switch (ideia->Cat){
 					case (C_Personagem):
-						printf("│ %-98s │\n", "Defina o personagem em %d palavras distintas(ou frases de até 64 caracteres):\n", C);
+						format_print("│ %-98s │\n", "Defina o personagem em %d palavras distintas(ou frases de até 64 caracteres):\n", C);
 						for (int i = 0; i < C; i++)
 						{
-							printf("│ %d° caracteristica (atual): %s", i+1, ideia->carac[i]);
-							printf("│ %d° caracteristica nova: ");
+							printf("│ %d° caracteristica (atual): %s ", i+1, ideia->carac[i]);
+							printf("│ %d° caracteristica nova: ", i+1);
 							ler_frase(ideia->carac[i], P);
 						}
 						scanf_flush(); //limpando queue por preocaução
