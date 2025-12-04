@@ -105,7 +105,7 @@ int main () {
 	fclose(f_data);
 	fclose(f_index);
 	free(g_indice);
-	printf("Salvo com sucesso, programa terminado :)");
+	printf("Salvo com sucesso, programa terminado :)\n");
 	return 0;
 }
 
