@@ -570,7 +570,7 @@ void ler_ideia (struct Ideia* ideia)
 		case (C_Item):
 
 			//tipo
-			printf("│ %-98s │\n", "Insira o tipo do item: ");
+			printf("│ %-98s │", "Insira o tipo do item: ");
 			printf("│ ► ");
 			ler_frase(ideia->tipo, P);
 
