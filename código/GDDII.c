@@ -570,7 +570,7 @@ void ler_ideia (struct Ideia* ideia)
 		case (C_Item):
 
 			//tipo
-			printf("│ %-98s │", "Insira o tipo do item: ");
+			printf("│ %-98s │\n", "Insira o tipo do item: ");
 			printf("│ ► ");
 			ler_frase(ideia->tipo, P);
 
@@ -909,12 +909,12 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 						}
 						break;
 					case (C_Item):
-						printf("│ %-98s │\n", "Insira o tipo do item:\n");
+						printf("│ %-98s │\n", "Insira o tipo do item:");
 						printf("│ ► ");
 						ler_frase(ideia->tipo, P);
 						break;
 					case (C_Cenario):
-						printf("│ %-98s │\n", "Insira em hexadecimal a cor predominante do cenário:\n");
+						printf("│ %-98s │\n", "Insira em hexadecimal a cor predominante do cenário:");
 						printf("│ ► ");
 						scanf("%x", &ideia->cor_predom);
 						break;
@@ -954,18 +954,18 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 						break;
 	
 					case (C_Item):
-						printf("│ %-98s │\n", "Insira o tipo do item:\n");
+						printf("│ %-98s │\n", "Insira o tipo do item:");
 						printf("│ ► ");
 						ler_frase(ideia->tipo, P);
 						break;
 					case (C_Cenario):
-						printf("│ %-98s │\n", "Insira em hexadecimal a cor predominante do cenário:\n");
+						printf("│ %-98s │\n", "Insira em hexadecimal a cor predominante do cenário:");
 						printf("│ ► ");
 						scanf("%x", &ideia->cor_predom);
 						scanf_flush(); //limpando queue por preocaução
 						break;
 					case (C_Customizado):
-						printf("│ %-98s │\n", "Insira o nome da categoria customizada: \n");
+						printf("│ %-98s │\n", "Insira o nome da categoria customizada: ");
 						printf("│ ► ");
 						ler_frase(ideia->nome_categoria_custom, P);
 						break;
