@@ -770,7 +770,7 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 			break;
 	
 		case (C_Cenario):
-			printf("│%-100s│\n", "6. Editar a cor predominante do cenário:");
+			printf("│%-101s│\n", "6. Editar a cor predominante do cenário:");
 			break;
 			
 		case (C_Customizado):
@@ -846,7 +846,7 @@ void menu_edit(struct Ideia* ideia, IndiceEntry* entrada_indice, int modo){
 				printf("├────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
 				printf("│ %-98s │\n", "Prioridade atual: %d");
 				printf("│ %-98s │\n", "Qual a nova prioridade da ideia no projeto?");
-				printf("│ ► ");
+				printf("│ ► "); 
 				scanf("%d", &ideia->prioridade);
 				scanf_flush(); 
 				printf("╰────────────────────────────────────────────────────────────────────────────────────────────────────╯\n");
